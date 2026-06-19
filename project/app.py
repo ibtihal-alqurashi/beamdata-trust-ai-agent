@@ -17,16 +17,28 @@ if PROJECT_DIR not in sys.path:
 os.chdir(ROOT_DIR)
 
 # ============================================================
-# Import Existing Agent Logic
+# Render Light Mode Interceptor
 # ============================================================
 
-try:
-    from agent import load_policies, build_vectorstore, build_chain, full_pipeline
-    from llm_judge import judge_ticket
-except Exception as import_error:
-    print("[FATAL] Failed to import agent modules.")
-    print(import_error)
-    raise
+RENDER_LIGHT_MODE = os.environ.get("RENDER_LIGHT_MODE", "false").lower() == "true"
+
+if RENDER_LIGHT_MODE:
+    print("[INFO] Intercepting and mocking heavy imports for Render Free Plan (Light Mode)...")
+    from unittest.mock import MagicMock
+    sys.modules['langchain_community.vectorstores'] = MagicMock()
+    sys.modules['langchain_community.embeddings'] = MagicMock()
+    sys.modules['chromadb'] = MagicMock()
+    sys.modules['sentence_transformers'] = MagicMock()
+
+# ============================================================
+# Global Agent Function Stubs (Lazy Loaded)
+# ============================================================
+
+load_policies = None
+build_vectorstore = None
+build_chain = None
+full_pipeline = None
+judge_ticket = None
 
 
 # ============================================================
@@ -149,13 +161,81 @@ def log_security_attack(user_input, attack_types, action_taken, metadata=None):
         print(log_error)
 
 
+# ============================================================
+# Light Mode Mock Classes
+# ============================================================
+
+class LightMockDocument:
+    def __init__(self, page_content):
+        self.page_content = page_content
+
+class LightMockRetriever:
+    def __init__(self, policies_text):
+        self.policies_text = policies_text
+        self.chunks = [c.strip() for c in policies_text.split("---") if c.strip()]
+
+    def invoke(self, question):
+        question_lower = question.lower()
+        stopwords = {"the", "a", "an", "is", "are", "to", "for", "of", "and", "in", "on", "at", "with", "about", "our", "us", "we", "you", "your"}
+        words = [w.strip("?,.:;!") for w in question_lower.split()]
+        keywords = [w for w in words if w and w not in stopwords]
+        
+        scored_chunks = []
+        for chunk in self.chunks:
+            chunk_lower = chunk.lower()
+            score = 0
+            for kw in keywords:
+                if kw in chunk_lower:
+                    score += 1
+                    if f" {kw} " in f" {chunk_lower} ":
+                        score += 2
+                        
+            # Service keyword boosts to ensure precise service matching
+            if "strategy" in question_lower and "ai strategy" in chunk_lower:
+                score += 10
+            if "implementation" in question_lower and "ai implementation" in chunk_lower:
+                score += 10
+            if "infrastructure" in question_lower and "ai infrastructure" in chunk_lower:
+                score += 10
+            if "cloud" in question_lower and "data and cloud" in chunk_lower:
+                score += 10
+            if "analytics" in question_lower and "data analytics" in chunk_lower:
+                score += 10
+            if "science" in question_lower and "data science" in chunk_lower:
+                score += 10
+                
+            scored_chunks.append((score, chunk))
+            
+        scored_chunks.sort(key=lambda x: x[0], reverse=True)
+        top_chunks = [chunk for score, chunk in scored_chunks[:3]]
+        return [LightMockDocument(c) for c in top_chunks]
+
+class LightMockVectorstore:
+    def __init__(self, policies_text):
+        self.policies_text = policies_text
+
+    def as_retriever(self, search_type=None, search_kwargs=None):
+        return LightMockRetriever(self.policies_text)
+
+
 def init_agent():
     global policies, vectorstore, chain, agent_ready
+    global load_policies, build_vectorstore, build_chain, full_pipeline, judge_ticket
 
     if agent_ready:
         return
 
-    print("[INFO] Initializing Beamdata Intelligent Agent...")
+    print("[INFO] Initializing Beamdata Intelligent Agent (Lazy Loading)...")
+
+    # Import modules dynamically inside init_agent to defer loading
+    from agent import load_policies as _load_policies, build_vectorstore as _build_vectorstore, build_chain as _build_chain, full_pipeline as _full_pipeline
+    from llm_judge import judge_ticket as _judge_ticket
+
+    load_policies = _load_policies
+    build_vectorstore = _build_vectorstore
+    build_chain = _build_chain
+    full_pipeline = _full_pipeline
+    judge_ticket = _judge_ticket
 
     knowledge_path = os.path.join(ROOT_DIR, "knowledge", "beamdata_knowledge_base.txt")
 
@@ -164,8 +244,16 @@ def init_agent():
             f"Knowledge base not found at: {knowledge_path}"
         )
 
-    policies = load_policies()
-    vectorstore = build_vectorstore(policies)
+    if RENDER_LIGHT_MODE:
+        print("[INFO] Light mode active: bypassing ChromaDB and sentence-transformers initialization.")
+        with open(knowledge_path, "r", encoding="utf-8") as f:
+            policies_text = f.read()
+        policies = policies_text
+        vectorstore = LightMockVectorstore(policies_text)
+    else:
+        policies = load_policies()
+        vectorstore = build_vectorstore(policies)
+
     chain = build_chain()
 
     agent_ready = True
@@ -194,22 +282,26 @@ def health():
 def chat():
     global vectorstore, chain
 
-    if not agent_ready:
+    try:
+        init_agent()
+    except Exception as init_err:
+        print("[ERROR] Lazy initialization failed in /api/chat:")
+        print(traceback.format_exc())
         return jsonify({
-            "reply": "The assistant is still initializing. Please try again in a moment.",
+            "reply": "The assistant failed to initialize. Please check server logs.",
             "status": "ERROR",
             "attack_type": [],
             "terminate_session": False,
             "risk_level": "low",
             "action": "allow",
-            "reason": "Agent is not initialized.",
+            "reason": f"Initialization error: {init_err}",
             "scores": {
                 "sensitive_intent": "0",
                 "roleplay": "0",
                 "emotional_manipulation": "0",
                 "crm_data_request": "0"
             }
-        }), 503
+        }), 500
 
     data = request.get_json(silent=True) or {}
 
@@ -341,6 +433,13 @@ def select_mode():
 @app.route("/api/service", methods=["POST"])
 def service():
     global vectorstore, chain
+    try:
+        init_agent()
+    except Exception as init_err:
+        print("[ERROR] Lazy initialization failed in /api/service:")
+        print(traceback.format_exc())
+        return jsonify({"error": f"Failed to initialize agent: {init_err}"}), 500
+
     data = request.get_json(silent=True) or {}
     service_id = str(data.get("service_id", ""))
     
@@ -392,9 +491,6 @@ def reset_session():
 # ============================================================
 # Main
 # ============================================================
-
-# Initialize the agent on startup/import (required for Gunicorn deployment)
-init_agent()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False)

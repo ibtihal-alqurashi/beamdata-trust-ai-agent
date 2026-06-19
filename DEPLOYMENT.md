@@ -58,11 +58,12 @@ Do **not** upload your `.env` file to GitHub. Instead, configure the following e
 
 | Variable Name | Description |
 | :--- | :--- |
+| `PYTHON_VERSION` | Set to `3.11.9` |
+| `RENDER_LIGHT_MODE` | Set to `true` (enables lightweight mock vectorstore & bypasses heavy models) |
 | `GROQ_API_KEY` | Your Groq API key for language model execution |
 | `AIRTABLE_PAT` | Your Airtable Personal Access Token (PAT) for database integration |
 | `AIRTABLE_BASE_ID` | Your Airtable Base ID |
 | `AIRTABLE_TABLE_NAME` | Your Airtable Table Name |
-| `HF_TOKEN` | Hugging Face token required for sentence-transformers |
 
 ---
 
