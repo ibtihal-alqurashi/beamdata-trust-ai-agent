@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Beamdata – Trust AI | Intelligent Sales Assistant</title>
+  <meta name="description"
+    content="Beamdata AI-powered sales assistant. Ask about our services, solutions, and products. Secure, intelligent, and professional.">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet">
+
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <!-- Flask Static CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+  <!-- ===================== HEADER ===================== -->
+  <header class="app-header" id="app-header">
+    <div class="header-inner">
+
+      <div style="display: flex; align-items: center; gap: 0.8rem;">
+        <button id="global-sidebar-toggle" class="icon-btn" title="Toggle Sidebar" aria-label="Toggle sidebar"
+          onclick="document.body.classList.toggle('sidebar-collapsed')">
+          <i class="fas fa-bars"></i>
+        </button>
+
+        <button id="theme-toggle-btn" class="icon-btn" title="Toggle Dark / Light Mode" aria-label="Toggle theme">
+          <i class="fas fa-moon" id="theme-icon-moon"></i>
+          <i class="fas fa-sun" id="theme-icon-sun"></i>
+        </button>
+
+        <div class="header-brand" style="margin-left: 0.4rem;">
+          <div class="brand-logo-wrap">
+            <svg class="brand-svg" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg"
+              aria-label="Beamdata Logo">
+              <defs>
+                <linearGradient id="bdGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#D6147A" />
+                  <stop offset="50%" stop-color="#E8209A" />
+                  <stop offset="100%" stop-color="#FF3DAE" />
+                </linearGradient>
+                <linearGradient id="bdGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#FF3DAE" />
+                  <stop offset="100%" stop-color="#D6147A" />
+                </linearGradient>
+              </defs>
+
+              <path
+                d="M35 28 C95 28, 168 52, 168 98 C168 140, 112 172, 35 172 C68 142, 108 118, 108 98 C108 78, 70 52, 35 28 Z"
+                fill="url(#bdGrad1)" />
+              <path
+                d="M35 60 C82 60, 140 78, 140 108 C140 132, 98 156, 35 172 C58 142, 88 122, 88 108 C88 94, 62 78, 35 60 Z"
+                fill="url(#bdGrad2)" opacity="0.78" />
+              <path
+                d="M35 92 C68 92, 112 102, 112 124 C112 138, 82 158, 35 172 C48 148, 68 134, 68 124 C68 114, 52 104, 35 92 Z"
+                fill="url(#bdGrad1)" opacity="0.55" />
+            </svg>
+          </div>
+
+          <div class="brand-text-block">
+            <span class="brand-name">Beamdata</span>
+            <span class="brand-slogan">Trust AI</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ===================== MAIN LAYOUT ===================== -->
+  <main class="app-main">
+    <div class="layout-grid">
+
+      <!-- =========== SIDEBAR =========== -->
+      <aside class="sidebar" id="sidebar">
+
+        <!-- Session Information -->
+        <div class="side-card" id="session-info-card">
+          <div class="card-header collapsible-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <div class="header-left">
+              <i class="fas fa-circle-info card-icon"></i>
+              <h3 class="card-title">Session Information</h3>
+            </div>
+            <i class="fas fa-chevron-up toggle-icon"></i>
+          </div>
+
+          <div class="card-body">
+            <div class="info-row">
+              <span class="info-label">Status</span>
+              <span id="session-status-badge" class="status-pill pill-active">
+                <span class="pill-dot"></span>
+                <span id="session-status-text">Active</span>
+              </span>
+            </div>
+
+            <div class="info-row">
+              <span class="info-label">Used Messages</span>
+              <span id="used-messages-text" class="info-value">0 / 3</span>
+            </div>
+
+            <div class="info-row">
+              <span class="info-label">Session Start</span>
+              <span id="session-start-time" class="info-value">--:--</span>
+            </div>
+          </div>
+
+          <div class="card-actions">
+            <button id="new-session-btn" class="action-btn btn-fuchsia" title="Start a new chat session">
+              <i class="fas fa-rotate-right"></i>
+              <span>New Session</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Security Status -->
+        <div class="side-card" id="security-status-card">
+          <div class="card-header collapsible-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <div class="header-left">
+              <i class="fas fa-shield-halved card-icon icon-fuchsia"></i>
+              <h3 class="card-title">Security Status</h3>
+            </div>
+            <i class="fas fa-chevron-up toggle-icon"></i>
+          </div>
+
+          <div class="card-body" id="security-body">
+
+            <div id="security-safe-view">
+              <div class="security-state-badge state-secure">
+                <i class="fas fa-shield-check"></i>
+                <span>Secure Interaction</span>
+              </div>
+              <p class="security-detail-text" id="security-detail-text">AI Protection Active</p>
+            </div>
+
+            <div id="security-threat-view" class="hidden">
+              <div class="security-state-badge state-threat">
+                <i class="fas fa-triangle-exclamation"></i>
+                <span>Request Blocked</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Important Information -->
+        <div class="side-card collapsed" id="important-info-card">
+          <div class="card-header collapsible-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <div class="header-left">
+              <i class="fas fa-circle-exclamation card-icon icon-amber"></i>
+              <h3 class="card-title">Important Information</h3>
+            </div>
+            <i class="fas fa-chevron-up toggle-icon"></i>
+          </div>
+
+          <div class="card-body">
+            <div class="info-tip">
+              <div class="tip-icon-wrap tip-red">
+                <i class="fas fa-hourglass-half"></i>
+              </div>
+              <div class="tip-content">
+                <strong>Limited Attempts</strong>
+                <p>You have a maximum of <strong>3 attempts</strong> per session. Please use them wisely.</p>
+              </div>
+            </div>
+
+            <div class="info-tip">
+              <div class="tip-icon-wrap tip-fuchsia">
+                <i class="fas fa-bullseye"></i>
+              </div>
+              <div class="tip-content">
+                <strong>Be Clear &amp; Specific</strong>
+                <p>The clearer and more specific your request, the better the answer.</p>
+              </div>
+            </div>
+
+            <div class="info-tip">
+              <div class="tip-icon-wrap tip-navy">
+                <i class="fas fa-robot"></i>
+              </div>
+              <div class="tip-content">
+                <strong>About Beamdata Assistant</strong>
+                <p>Designed to answer questions about Beamdata services, solutions, and products.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </aside>
+
+      <!-- =========== CHAT WORKSPACE =========== -->
+      <section class="chat-workspace" id="chat-workspace">
+
+        <!-- Welcome Screen -->
+        <div id="welcome-screen" class="welcome-screen">
+          <div class="welcome-hero">
+            <div class="welcome-logo-wrap">
+              <svg class="welcome-svg" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="wGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#D6147A" />
+                    <stop offset="100%" stop-color="#FF3DAE" />
+                  </linearGradient>
+                </defs>
+
+                <path
+                  d="M35 28 C95 28, 168 52, 168 98 C168 140, 112 172, 35 172 C68 142, 108 118, 108 98 C108 78, 70 52, 35 28 Z"
+                  fill="url(#wGrad1)" />
+                <path
+                  d="M35 60 C82 60, 140 78, 140 108 C140 132, 98 156, 35 172 C58 142, 88 122, 88 108 C88 94, 62 78, 35 60 Z"
+                  fill="url(#wGrad1)" opacity="0.75" />
+                <path
+                  d="M35 92 C68 92, 112 102, 112 124 C112 138, 82 158, 35 172 C48 148, 68 134, 68 124 C68 114, 52 104, 35 92 Z"
+                  fill="url(#wGrad1)" opacity="0.5" />
+              </svg>
+            </div>
+
+            <h1 class="welcome-title">Welcome to Beamdata Assistant</h1>
+            <p class="welcome-subtitle">
+              Ask me anything about Beamdata's AI services, solutions, and products. I'm here to help.
+            </p>
+
+            <a href="https://beamdata.ai/contact/" target="_blank" rel="noopener noreferrer" class="cta-btn">
+              <i class="fas fa-envelope"></i>
+              Contact Us for Custom Solutions
+            </a>
+          </div>
+
+          <div class="quick-section">
+            <h2 class="quick-title" id="mode-title">Please select an option:</h2>
+
+            <!-- Main Mode Selection -->
+            <div class="quick-grid" id="mode-selection">
+              <button class="quick-card mode-btn" onclick="selectMode('explore_services')">
+                <i class="fas fa-compass"></i>
+                <span>Explore Services</span>
+              </button>
+
+              <button class="quick-card mode-btn" onclick="selectMode('technical_support')">
+                <i class="fas fa-wrench"></i>
+                <span>Get Technical Support</span>
+              </button>
+            </div>
+
+            <!-- Services Grid (Hidden by default) -->
+            <div class="quick-grid hidden" id="services-grid">
+              <button class="quick-card service-btn" onclick="selectService('1')">
+                <i class="fas fa-brain"></i>
+                <span>AI Strategy</span>
+              </button>
+              <button class="quick-card service-btn" onclick="selectService('2')">
+                <i class="fas fa-code-branch"></i>
+                <span>AI Implementation</span>
+              </button>
+              <button class="quick-card service-btn" onclick="selectService('3')">
+                <i class="fas fa-server"></i>
+                <span>AI Infrastructure</span>
+              </button>
+              <button class="quick-card service-btn" onclick="selectService('4')">
+                <i class="fas fa-cloud"></i>
+                <span>Data and Cloud Infrastructure</span>
+              </button>
+              <button class="quick-card service-btn" onclick="selectService('5')">
+                <i class="fas fa-chart-line"></i>
+                <span>Data Analytics and Data Science</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chat Messages -->
+        <div id="chat-messages-container" class="chat-messages-container hidden">
+          <div id="message-list" class="message-list"></div>
+
+          <div id="typing-indicator" class="typing-row hidden">
+            <div class="msg-avatar bot-avatar">
+              <i class="fas fa-robot"></i>
+            </div>
+
+            <div class="typing-bubble">
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chat Input -->
+        <div class="chat-input-panel" id="chat-input-panel">
+          <div class="input-row">
+            <button id="clear-chat-btn" class="tool-btn" title="Clear chat messages" aria-label="Clear chat">
+              <i class="fas fa-broom"></i>
+            </button>
+
+            <div class="input-box" id="input-box">
+              <textarea id="chat-input" placeholder="Ask about Beamdata services..." rows="1"
+                aria-label="Chat input"></textarea>
+
+              <button id="send-btn" class="send-btn" disabled aria-label="Send message">
+                <i class="fas fa-paper-plane"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="input-footer-bar">
+            <span id="input-footer-text">© 2026 Beamdata. All rights reserved.</span>
+          </div>
+        </div>
+
+      </section>
+    </div>
+  </main>
+
+  <!-- Flask Static JS -->
+  <script src="{{ url_for('static', filename='script.js') }}" defer></script>
+</body>
+
+</html>
