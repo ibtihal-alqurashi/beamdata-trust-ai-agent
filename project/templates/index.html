@@ -29,7 +29,7 @@
     <div class="header-inner">
 
       <div style="display: flex; align-items: center; gap: 0.8rem;">
-        <button id="global-sidebar-toggle" class="icon-btn" title="Toggle Sidebar" aria-label="Toggle sidebar"
+        <button id="mobile-menu-btn" class="icon-btn" title="Toggle Sidebar" aria-label="Toggle sidebar"
           onclick="document.body.classList.toggle('sidebar-collapsed')">
           <i class="fas fa-bars"></i>
         </button>
@@ -83,6 +83,10 @@
 
       <!-- =========== SIDEBAR =========== -->
       <aside class="sidebar" id="sidebar">
+        <!-- Close button for mobile -->
+        <button id="sidebar-close-btn" class="sidebar-close-btn" aria-label="Close sidebar">
+          <i class="fas fa-xmark"></i>
+        </button>
 
         <!-- Session Information -->
         <div class="side-card" id="session-info-card">
@@ -319,6 +323,9 @@
       </section>
     </div>
   </main>
+
+  <!-- Sidebar Overlay for Mobile -->
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
 
   <!-- Flask Static JS -->
   <script src="{{ url_for('static', filename='script.js') }}" defer></script>

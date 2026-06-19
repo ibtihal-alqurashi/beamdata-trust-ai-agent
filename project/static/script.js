@@ -13,6 +13,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const sessionStartTime = document.getElementById("session-start-time");
   const newSessionBtn = document.getElementById("new-session-btn");
 
+  // Mobile Drawer References
+  const mobileMenuBtn = document.getElementById("mobile-menu-btn");
+  const sidebarCloseBtn = document.getElementById("sidebar-close-btn");
+  const sidebarOverlay = document.getElementById("sidebar-overlay");
+  const sidebar = document.getElementById("sidebar");
+
 
   const securitySafeView = document.getElementById("security-safe-view");
   const securityThreatView = document.getElementById("security-threat-view");
@@ -127,7 +133,34 @@ document.addEventListener("DOMContentLoaded", () => {
     console.log("[INFO] Session closed:", reason);
   }
 
-  newSessionBtn.addEventListener("click", () => startSession());
+  // Helper to close mobile sidebar
+  function closeMobileSidebar() {
+    if (sidebar && sidebarOverlay) {
+      sidebar.classList.remove("sidebar-open");
+      sidebarOverlay.classList.remove("sidebar-open");
+    }
+  }
+
+  newSessionBtn.addEventListener("click", () => {
+    startSession();
+    closeMobileSidebar();
+  });
+
+  // Mobile Drawer Event Listeners
+  if (mobileMenuBtn && sidebar && sidebarOverlay) {
+    mobileMenuBtn.addEventListener("click", () => {
+      sidebar.classList.add("sidebar-open");
+      sidebarOverlay.classList.add("sidebar-open");
+    });
+  }
+
+  if (sidebarCloseBtn) {
+    sidebarCloseBtn.addEventListener("click", closeMobileSidebar);
+  }
+
+  if (sidebarOverlay) {
+    sidebarOverlay.addEventListener("click", closeMobileSidebar);
+  }
 
 
 
