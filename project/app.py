@@ -474,10 +474,7 @@ def service():
 
     reply = result.get("reply", "No information found.")
     
-    # Append the exit message logic from agent.py
-    exit_message = "\n\n🙏 Thank you for using Beamdata Services.\n\nIf you need anything else, feel free to contact us:\n📞 Contact Information\n- Contact Form: https://beamdata.ai/contact/\n- Email: info@beamdata.ai\n- Phone: 365-795-0102"
-    
-    return jsonify({"reply": reply + exit_message})
+    return jsonify({"reply": reply})
 
 
 @app.route("/api/reset", methods=["POST"])

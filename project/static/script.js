@@ -113,6 +113,13 @@ document.addEventListener("DOMContentLoaded", () => {
   function terminateSession(reason = "Session terminated.", mode = "terminated") {
     sessionActive = false;
 
+    // Fix iOS keyboard viewport bug
+    if (document.activeElement === chatInput) {
+      chatInput.blur();
+    }
+    window.scrollTo(0, 0);
+    document.body.style.overflow = "";
+
     if (mode === "block") {
       sessionStatusBadge.className = "status-pill pill-terminated";
       sessionStatusText.textContent = "Terminated";
@@ -130,6 +137,28 @@ document.addEventListener("DOMContentLoaded", () => {
     inputBox.classList.add("input-locked");
 
     appendSystemMessage(reason);
+    
+    const recoveryDiv = document.createElement("div");
+    recoveryDiv.style.textAlign = "center";
+    recoveryDiv.style.marginTop = "1rem";
+    recoveryDiv.style.marginBottom = "1rem";
+    recoveryDiv.innerHTML = `
+      <button class="action-btn btn-fuchsia recovery-btn" style="display:inline-flex; width:auto; padding:0.6rem 1.2rem; margin:0 auto;">
+        <i class="fas fa-rotate-right"></i>
+        <span>New Session</span>
+      </button>
+    `;
+    const recoveryBtn = recoveryDiv.querySelector('.recovery-btn');
+    recoveryBtn.addEventListener("click", () => {
+      startSession();
+      closeMobileSidebar();
+    });
+    messageList.appendChild(recoveryDiv);
+    
+    setTimeout(() => {
+      scrollToBottom();
+    }, 100);
+
     console.log("[INFO] Session closed:", reason);
   }
 
@@ -138,6 +167,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (sidebar && sidebarOverlay) {
       sidebar.classList.remove("sidebar-open");
       sidebarOverlay.classList.remove("sidebar-open");
+      document.body.style.overflow = "";
     }
   }
 
@@ -151,6 +181,9 @@ document.addEventListener("DOMContentLoaded", () => {
     mobileMenuBtn.addEventListener("click", () => {
       sidebar.classList.add("sidebar-open");
       sidebarOverlay.classList.add("sidebar-open");
+      if (window.innerWidth <= 768) {
+        document.body.style.overflow = "hidden";
+      }
     });
   }
 

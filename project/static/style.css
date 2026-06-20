@@ -1291,6 +1291,9 @@ body.sidebar-collapsed .sidebar {
     border: none !important;
     border-right: 1px solid var(--border) !important;
     padding: 1.5rem 1.25rem !important;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom)) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
     display: flex !important;
     flex-direction: column !important;
     gap: 1.25rem !important;
@@ -1365,10 +1368,15 @@ body.sidebar-collapsed .sidebar {
     padding: 1rem 1rem 0.5rem !important;
     gap: 1rem !important;
     overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
     justify-content: flex-start !important;
+  }
+
+  .welcome-screen.hidden {
+    display: none !important;
   }
 
   .welcome-hero {
@@ -1416,6 +1424,8 @@ body.sidebar-collapsed .sidebar {
     padding: 1rem 1rem 0.5rem !important;
     gap: 1rem !important;
     height: 100% !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
   }
 
   .msg-row {
@@ -1472,9 +1482,6 @@ body.sidebar-collapsed .sidebar {
     font-size: 0.62rem !important;
   }
 
-  #important-info-card {
-    display: none !important;
-  }
 }
 
 @media (max-width: 480px) {
