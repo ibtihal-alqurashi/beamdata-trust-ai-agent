@@ -467,4 +467,23 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   startSession();
+
+  // Hide Loading Screen
+  const loader = document.getElementById("app-loader");
+  if (loader) {
+    const hideLoader = () => {
+      if (!loader.classList.contains("fade-out")) {
+        loader.classList.add("fade-out");
+        setTimeout(() => {
+          loader.remove();
+        }, 500);
+      }
+    };
+    
+    // Hide when window is loaded
+    window.addEventListener("load", hideLoader);
+    
+    // Fallback timeout (5 seconds)
+    setTimeout(hideLoader, 5000);
+  }
 });

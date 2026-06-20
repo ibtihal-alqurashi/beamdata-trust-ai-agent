@@ -24,6 +24,32 @@
 
 <body>
 
+  <!-- ===================== BRAND LOADING SCREEN ===================== -->
+  <div id="app-loader" class="app-loader">
+    <div class="loader-content">
+      <div class="loader-logo-wrap">
+        <svg class="loader-svg" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Beamdata Logo">
+          <defs>
+            <linearGradient id="loaderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#D6147A" />
+              <stop offset="50%" stop-color="#E8209A" />
+              <stop offset="100%" stop-color="#FF3DAE" />
+            </linearGradient>
+          </defs>
+          <path d="M35 28 C95 28, 168 52, 168 98 C168 140, 112 172, 35 172 C68 142, 108 118, 108 98 C108 78, 70 52, 35 28 Z" fill="url(#loaderGrad)" />
+          <path d="M35 60 C82 60, 140 78, 140 108 C140 132, 98 156, 35 172 C58 142, 88 122, 88 108 C88 94, 62 78, 35 60 Z" fill="url(#loaderGrad)" opacity="0.78" />
+          <path d="M35 92 C68 92, 112 102, 112 124 C112 138, 82 158, 35 172 C48 148, 68 134, 68 124 C68 114, 52 104, 35 92 Z" fill="url(#loaderGrad)" opacity="0.55" />
+        </svg>
+      </div>
+      <h2 class="loader-title">Beamdata <span class="accent-text">Trust AI</span></h2>
+      <div class="loader-spinner-wrap">
+        <div class="loader-spinner"></div>
+      </div>
+      <p class="loader-text-main">Loading Beamdata Trust AI...</p>
+      <p class="loader-text-sub">Please wait while we initialize the assistant.</p>
+    </div>
+  </div>
+
   <!-- ===================== HEADER ===================== -->
   <header class="app-header" id="app-header">
     <div class="header-inner">

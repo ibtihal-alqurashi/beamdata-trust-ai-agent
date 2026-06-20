@@ -72,3 +72,10 @@ Do **not** upload your `.env` file to GitHub. Instead, configure the following e
 1. Once the environment variables are configured, click **Deploy Web Service** (or let Render auto-deploy if the build starts automatically).
 2. Render will build the environment, install the packages in `requirements.txt`, run the initialization of the Beamdata Intelligent Agent, and launch Gunicorn.
 3. Once the logs show a successful startup, copy the public URL provided by Render (e.g., `https://beamdata-trust-ai-agent.onrender.com`) and open it in your browser.
+
+---
+
+> [!NOTE]
+> **Render Free Plan Cold Starts**
+> When deployed on Render's Free tier, the web service will automatically spin down after 15 minutes of inactivity. When a new request arrives, Render will spin the container back up. This "cold start" process can take up to a minute or more, during which visitors might experience a loading delay. 
+> To mitigate this, a professional brand loading screen is built into the application to indicate that the service is initializing and prevent a blank or black screen experience on first load.
