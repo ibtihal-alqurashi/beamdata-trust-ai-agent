@@ -79,3 +79,9 @@ Do **not** upload your `.env` file to GitHub. Instead, configure the following e
 > **Render Free Plan Cold Starts**
 > When deployed on Render's Free tier, the web service will automatically spin down after 15 minutes of inactivity. When a new request arrives, Render will spin the container back up. This "cold start" process can take up to a minute or more, during which visitors might experience a loading delay. 
 > To mitigate this, a professional brand loading screen is built into the application to indicate that the service is initializing and prevent a blank or black screen experience on first load.
+>
+> **Important Clarification on Loading Screens:**
+> - **Render's Cold-Start Loader:** Render may display its own default loading or progress screen while spinning up the container. This happens *before* the Flask application starts or receives any requests.
+> - **App-Level Loading Screen:** The custom Beamdata brand loading screen will only appear *after* the Flask app is awake and has begun serving the frontend.
+> - **Behavior:** The Render cold-start screen cannot be replaced or bypassed by the Flask app loader, as the application process itself is not yet running during the initial cold start.
+

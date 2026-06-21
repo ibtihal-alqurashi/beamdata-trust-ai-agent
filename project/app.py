@@ -4,6 +4,20 @@ import traceback
 from datetime import datetime
 from flask import Flask, request, jsonify, render_template
 
+# Monkeypatch ChatGroq to use max_tokens=400 to improve response speed safely
+try:
+    import langchain_groq
+    original_chat_groq_init = langchain_groq.ChatGroq.__init__
+    def patched_chat_groq_init(self, *args, **kwargs):
+        if "max_tokens" not in kwargs:
+            kwargs["max_tokens"] = 400
+        original_chat_groq_init(self, *args, **kwargs)
+    langchain_groq.ChatGroq.__init__ = patched_chat_groq_init
+    print("[INFO] Successfully patched ChatGroq with max_tokens=400 for speed improvement.")
+except Exception as patch_err:
+    print(f"[WARNING] Failed to patch ChatGroq: {patch_err}")
+
+
 # ============================================================
 # Path Setup
 # ============================================================
@@ -65,6 +79,36 @@ agent_ready = False
 # ============================================================
 # Helper Functions
 # ============================================================
+
+def is_rate_limit_error(exception):
+    err_str = str(exception).lower()
+    class_name = exception.__class__.__name__.lower()
+    
+    if "ratelimit" in class_name or "429" in class_name:
+        return True
+        
+    keywords = ["rate limit", "rate_limit", "token limit", "limit exceeded", "429", "too many requests"]
+    for kw in keywords:
+        if kw in err_str:
+            return True
+            
+    if hasattr(exception, "status_code") and exception.status_code == 429:
+        return True
+    if hasattr(exception, "http_status") and exception.http_status == 429:
+        return True
+    if hasattr(exception, "response") and hasattr(exception.response, "status_code") and exception.response.status_code == 429:
+        return True
+        
+    return False
+
+
+def sanitize_error_message(err_msg):
+    err_msg_lower = err_msg.lower()
+    sensitive_keywords = ["groq", "llama", "mixtral", "gemma", "openai", "api_key", "sk-", "org-", "token limit", "rate limit", "tpm", "rpm"]
+    for kw in sensitive_keywords:
+        if kw in err_msg_lower:
+            return "An internal service error occurred."
+    return err_msg
 
 def normalize_attack_types(attack_type):
     if not attack_type:
@@ -393,6 +437,23 @@ def chat():
         print("[ERROR] Error in /api/chat")
         print(traceback.format_exc())
 
+        if is_rate_limit_error(e):
+            return jsonify({
+                "reply": "The assistant is temporarily busy. Please try again in a few minutes.",
+                "status": "RATE_LIMIT_ERROR",
+                "attack_type": [],
+                "terminate_session": False,
+                "risk_level": "low",
+                "action": "allow",
+                "reason": "Rate limit exceeded",
+                "scores": {
+                    "sensitive_intent": "0",
+                    "roleplay": "0",
+                    "emotional_manipulation": "0",
+                    "crm_data_request": "0"
+                }
+            }), 429
+
         return jsonify({
             "reply": "An error occurred while processing your request. Please try again.",
             "status": "ERROR",
@@ -400,7 +461,7 @@ def chat():
             "terminate_session": False,
             "risk_level": "low",
             "action": "allow",
-            "reason": str(e),
+            "reason": sanitize_error_message(str(e)),
             "scores": {
                 "sensitive_intent": "0",
                 "roleplay": "0",
@@ -462,19 +523,28 @@ def service():
         "reason": ""
     }
 
-    result = full_pipeline(
-        vectorstore,
-        chain,
-        row=mock_row,
-        history_text="MODE: services"
-    )
+    try:
+        result = full_pipeline(
+            vectorstore,
+            chain,
+            row=mock_row,
+            history_text="MODE: services"
+        )
 
-    if not isinstance(result, dict):
-        result = {}
+        if not isinstance(result, dict):
+            result = {}
 
-    reply = result.get("reply", "No information found.")
-    
-    return jsonify({"reply": reply})
+        reply = result.get("reply", "No information found.")
+        return jsonify({"reply": reply})
+    except Exception as e:
+        print("[ERROR] Error in /api/service:")
+        print(traceback.format_exc())
+        if is_rate_limit_error(e):
+            return jsonify({
+                "reply": "The assistant is temporarily busy. Please try again in a few minutes.",
+                "error": "Rate limit exceeded"
+            }), 429
+        return jsonify({"error": sanitize_error_message(str(e))}), 500
 
 
 @app.route("/api/reset", methods=["POST"])

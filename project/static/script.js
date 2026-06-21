@@ -10,6 +10,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const sessionStatusBadge = document.getElementById("session-status-badge");
   const sessionStatusText = document.getElementById("session-status-text");
   const usedMessagesText = document.getElementById("used-messages-text");
+  const usedMessagesRow = document.getElementById("used-messages-row");
   const sessionStartTime = document.getElementById("session-start-time");
   const newSessionBtn = document.getElementById("new-session-btn");
 
@@ -47,6 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let sessionActive = true;
   let sessionStartMs = null;
   let currentSessionMode = null; // 'explore_services' | 'technical_support' | null
+  let isRequestPending = false;
 
   // Action Map
   function resolveAction(data) {
@@ -82,6 +84,7 @@ document.addEventListener("DOMContentLoaded", () => {
     chatHistory = [];
     messageCount = 0;
     currentSessionMode = null; // Reset mode tracking on every new session
+    isRequestPending = false;
 
     sessionStatusBadge.className = "status-pill pill-active";
     sessionStatusText.textContent = "Active";
@@ -90,11 +93,37 @@ document.addEventListener("DOMContentLoaded", () => {
 
     showSecurityState("allow");
 
-    // Disable input until mode selected
-    chatInput.disabled = true;
+    // Hide Used Messages row by default
+    if (usedMessagesRow) {
+      usedMessagesRow.classList.add("hidden");
+    }
+
+    // Clean up all service card states, opacities, cursors, pointer-events and classes
+    const serviceButtons = document.querySelectorAll(".service-btn");
+    serviceButtons.forEach(btn => {
+      btn.disabled = false;
+      btn.removeAttribute("disabled");
+      btn.style.opacity = "";
+      btn.style.cursor = "";
+      btn.style.pointerEvents = "";
+      btn.classList.remove("disabled", "terminated", "is-disabled", "session-ended", "pointer-events-none");
+    });
+
+    // Reset input elements and clean up all state classes, pointer-events and attributes
     chatInput.value = "";
     chatInput.style.height = "auto";
     chatInput.placeholder = "Select an option from the menu above...";
+    
+    chatInput.style.pointerEvents = "";
+    sendBtn.style.pointerEvents = "";
+    inputBox.style.pointerEvents = "";
+
+    chatInput.classList.remove("disabled", "terminated", "is-disabled", "session-ended", "pointer-events-none");
+    sendBtn.classList.remove("disabled", "terminated", "is-disabled", "session-ended", "pointer-events-none");
+    inputBox.classList.remove("disabled", "terminated", "is-disabled", "session-ended", "pointer-events-none", "input-locked");
+
+    // Re-apply welcome screen's initial input disabled state
+    chatInput.disabled = true;
     sendBtn.disabled = true;
     inputBox.classList.add("input-locked");
     inputFooterText.textContent = "© 2026 Beamdata. All rights reserved.";
@@ -200,28 +229,27 @@ document.addEventListener("DOMContentLoaded", () => {
   clearChatBtn.addEventListener("click", () => {
     if (!sessionActive) return;
     messageList.innerHTML = "";
-    if (!chatContainer.classList.contains("hidden")) {
-      welcomeScreen.classList.remove("hidden");
-      chatContainer.classList.add("hidden");
-    }
     chatHistory = [];
     appendSystemMessage("Chat cleared. Session is still active.");
   });
 
   // Flow Functions
   window.selectMode = async function(mode) {
+    if (isRequestPending || !sessionActive) return;
     if (mode === 'explore_services') {
       currentSessionMode = 'explore_services';
       if(modeSelection) modeSelection.classList.add("hidden");
       if(servicesGrid) servicesGrid.classList.remove("hidden");
       if(modeTitle) modeTitle.textContent = "Select a Service:";
     } else if (mode === 'technical_support') {
+      isRequestPending = true;
       currentSessionMode = 'technical_support';
       if(modeSelection) modeSelection.classList.add("hidden");
       if(servicesGrid) servicesGrid.classList.add("hidden");
       
       welcomeScreen.classList.add("hidden");
       chatContainer.classList.remove("hidden");
+      typingIndicator.classList.remove("hidden");
       
       try {
         const response = await fetch("/api/select-mode", {
@@ -231,18 +259,42 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         const data = await response.json();
         
+        typingIndicator.classList.add("hidden");
         appendSystemMessage(data.message || "Technical Support Mode Activated.");
         
+        // Show Used Messages row when Technical Support is selected
+        if (usedMessagesRow) {
+          usedMessagesRow.classList.remove("hidden");
+        }
+        
+        isRequestPending = false;
         chatInput.disabled = false;
         chatInput.placeholder = "Describe your issue or suggestion...";
         inputBox.classList.remove("input-locked");
       } catch(e) {
         console.error(e);
+        typingIndicator.classList.add("hidden");
+        isRequestPending = false;
       }
     }
   };
 
   window.selectService = async function(serviceId) {
+    if (isRequestPending || !sessionActive) return;
+    isRequestPending = true;
+
+    // Visually disable all service cards in the grid
+    const serviceButtons = document.querySelectorAll(".service-btn");
+    serviceButtons.forEach(btn => {
+      btn.disabled = true;
+      btn.style.opacity = "0.6";
+      btn.style.cursor = "not-allowed";
+    });
+
+    chatInput.disabled = true;
+    sendBtn.disabled = true;
+    inputBox.classList.add("input-locked");
+
     // Always ensure mode is set correctly for service browsing
     currentSessionMode = 'explore_services';
 
@@ -265,28 +317,64 @@ document.addEventListener("DOMContentLoaded", () => {
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({service_id: serviceId})
       });
+
+      if (response.status === 429) {
+        const errorData = await response.json().catch(() => ({}));
+        typingIndicator.classList.add("hidden");
+        appendBubble("bot", errorData.reply || "The assistant is temporarily busy. Please try again in a few minutes.", "allow");
+        
+        isRequestPending = false;
+        serviceButtons.forEach(btn => {
+          btn.disabled = false;
+          btn.style.opacity = "";
+          btn.style.cursor = "";
+        });
+        chatInput.disabled = false;
+        chatInput.placeholder = "Ask a follow-up question about this service...";
+        inputBox.classList.remove("input-locked");
+        sendBtn.disabled = chatInput.value.trim() === "";
+        return;
+      }
+
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
 
       typingIndicator.classList.add("hidden");
       appendBubble("bot", data.reply || "No information found.", "allow");
 
-      // Keep session ACTIVE — do NOT terminate after service info is shown.
-      // Enable chat input so the user can ask follow-up questions.
+      // Show the final message
+      appendBubble("bot", "Thank you for using Beamdata Services. If you need anything else, feel free to come back!", "allow");
+
+      // Set Session Status to Terminated, disable chat input, show Session ended.
+      terminateSession("Session ended.", "terminated");
+
+      console.log("[INFO] Service response delivered and final message shown. Session ended.");
+    } catch(e) {
+      console.error(e);
+      typingIndicator.classList.add("hidden");
+
+      const errMsg = e.message || "";
+      if (errMsg.includes("429") || errMsg.toLowerCase().includes("rate limit") || errMsg.toLowerCase().includes("busy")) {
+        appendBubble("bot", "The assistant is temporarily busy. Please try again in a few minutes.");
+      } else {
+        appendBubble("bot", "Error fetching service information.");
+      }
+
+      // Re-enable everything on error so the user can retry
+      isRequestPending = false;
+      serviceButtons.forEach(btn => {
+        btn.disabled = false;
+        btn.style.opacity = "";
+        btn.style.cursor = "";
+      });
       chatInput.disabled = false;
       chatInput.placeholder = "Ask a follow-up question about this service...";
       inputBox.classList.remove("input-locked");
       sendBtn.disabled = chatInput.value.trim() === "";
-
-      console.log("[INFO] Service response delivered. Session remains active for follow-up questions.");
-    } catch(e) {
-      console.error(e);
-      typingIndicator.classList.add("hidden");
-      appendBubble("bot", "Error fetching service information.");
-
-      // Still keep session active even on error
-      chatInput.disabled = false;
-      chatInput.placeholder = "Ask a follow-up question about this service...";
-      inputBox.classList.remove("input-locked");
+    } finally {
+      if (!sessionActive) {
+        isRequestPending = false;
+      }
     }
   };
 
@@ -307,8 +395,14 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   async function handleSend() {
+    if (isRequestPending || !sessionActive) return;
     const text = chatInput.value.trim();
-    if (!text || !sessionActive) return;
+    if (!text) return;
+
+    isRequestPending = true;
+    chatInput.disabled = true;
+    sendBtn.disabled = true;
+    inputBox.classList.add("input-locked");
 
     if (messageCount === 0) {
       welcomeScreen.classList.add("hidden");
@@ -317,7 +411,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     chatInput.value = "";
     chatInput.style.height = "auto";
-    sendBtn.disabled = true;
 
     appendBubble("user", text);
     messageCount++;
@@ -332,6 +425,21 @@ document.addEventListener("DOMContentLoaded", () => {
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({message: text, history: chatHistory})
       });
+
+      if (response.status === 429) {
+        const errorData = await response.json().catch(() => ({}));
+        typingIndicator.classList.add("hidden");
+        appendBubble("bot", errorData.reply || "The assistant is temporarily busy. Please try again in a few minutes.", "allow");
+        
+        isRequestPending = false;
+        chatInput.disabled = false;
+        chatInput.placeholder = currentSessionMode === 'explore_services' 
+          ? "Ask a follow-up question about this service..." 
+          : "Describe your issue or suggestion...";
+        inputBox.classList.remove("input-locked");
+        sendBtn.disabled = chatInput.value.trim() === "";
+        return;
+      }
 
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
@@ -349,12 +457,38 @@ document.addEventListener("DOMContentLoaded", () => {
       } else if (currentSessionMode === 'technical_support' && messageCount >= MAX_MESSAGES) {
         // 3-message limit applies ONLY in Technical Support mode
         terminateSession("Support session complete (3/3 messages used). Start a new session to continue.", "terminated");
+      } else {
+        // Re-enable inputs if session remains active
+        isRequestPending = false;
+        chatInput.disabled = false;
+        chatInput.placeholder = currentSessionMode === 'explore_services' 
+          ? "Ask a follow-up question about this service..." 
+          : "Describe your issue or suggestion...";
+        inputBox.classList.remove("input-locked");
+        sendBtn.disabled = chatInput.value.trim() === "";
       }
-      // In Explore Services mode: session stays active indefinitely — no limit applied
     } catch (err) {
       console.error("[ERROR] Chat request failed:", err);
       typingIndicator.classList.add("hidden");
-      appendBubble("bot", "An error occurred while connecting to the server.");
+      
+      const errMsg = err.message || "";
+      if (errMsg.includes("429") || errMsg.toLowerCase().includes("rate limit") || errMsg.toLowerCase().includes("busy")) {
+        appendBubble("bot", "The assistant is temporarily busy. Please try again in a few minutes.");
+      } else {
+        appendBubble("bot", "An error occurred while connecting to the server.");
+      }
+      
+      isRequestPending = false;
+      chatInput.disabled = false;
+      chatInput.placeholder = currentSessionMode === 'explore_services' 
+        ? "Ask a follow-up question about this service..." 
+        : "Describe your issue or suggestion...";
+      inputBox.classList.remove("input-locked");
+      sendBtn.disabled = chatInput.value.trim() === "";
+    } finally {
+      if (!sessionActive) {
+        isRequestPending = false;
+      }
     }
   }
 
